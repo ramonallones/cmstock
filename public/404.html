@@ -6,14 +6,17 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Cerutumurah Stock</title>
     <script>
-      (function () {
-        var base = '/cmstock'
-        var path = location.pathname
-        var route = path.indexOf(base) === 0 ? path.slice(base.length) : path
-        var target = base + (route || '/') + location.search + location.hash
-        sessionStorage.setItem('cmstock_spa_redirect', target)
-        location.replace(base + '/')
-      })()
+      const repo = "/cmstock";
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+
+      if (path.startsWith(repo)) {
+        const route = path.slice(repo.length);
+        window.location.replace(repo + "/?redirect=" + encodeURIComponent(route + search + hash));
+      } else {
+        window.location.replace(repo + "/");
+      }
     </script>
   </head>
   <body></body>

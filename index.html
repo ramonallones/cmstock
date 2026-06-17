@@ -8,12 +8,13 @@
     <meta name="theme-color" content="#24160f" />
     <title>Cerutumurah Stock</title>
     <script>
-      (function () {
-        var redirect = sessionStorage.getItem('cmstock_spa_redirect')
-        if (!redirect) return
-        sessionStorage.removeItem('cmstock_spa_redirect')
-        history.replaceState(null, '', redirect)
-      })()
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+
+      if (redirect) {
+        const cleanUrl = "/cmstock" + redirect;
+        window.history.replaceState(null, "", cleanUrl);
+      }
     </script>
   </head>
   <body>
