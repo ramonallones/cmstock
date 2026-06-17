@@ -7,7 +7,16 @@
     <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     <meta name="theme-color" content="#24160f" />
     <title>Cerutumurah Stock</title>
-    <script type="module" crossorigin src="/cmstock/assets/index-BAQsrO4j.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+
+      if (redirect) {
+        const cleanUrl = "/cmstock" + redirect;
+        window.history.replaceState(null, "", cleanUrl);
+      }
+    </script>
+    <script type="module" crossorigin src="/cmstock/assets/index-Bn1Vlq0T.js"></script>
     <link rel="modulepreload" crossorigin href="/cmstock/assets/react-vendor-Rjq0k1tq.js">
     <link rel="modulepreload" crossorigin href="/cmstock/assets/supabase-dIChsWQP.js">
     <link rel="modulepreload" crossorigin href="/cmstock/assets/icons-CGF5r59q.js">

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Cerutumurah Stock</title>
+    <script>
+      const repo = "/cmstock";
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+
+      if (path.startsWith(repo)) {
+        const route = path.slice(repo.length);
+        window.location.replace(repo + "/?redirect=" + encodeURIComponent(route + search + hash));
+      } else {
+        window.location.replace(repo + "/");
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
