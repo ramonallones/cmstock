@@ -8,7 +8,7 @@ import './styles/label-print.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/cmstock">
       <AuthProvider>
         <App />
       </AuthProvider>

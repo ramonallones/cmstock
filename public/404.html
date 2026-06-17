@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Cerutumurah Stock</title>
+    <script>
+      (function () {
+        var base = '/cmstock'
+        var path = location.pathname
+        var route = path.indexOf(base) === 0 ? path.slice(base.length) : path
+        var target = base + (route || '/') + location.search + location.hash
+        sessionStorage.setItem('cmstock_spa_redirect', target)
+        location.replace(base + '/')
+      })()
+    </script>
+  </head>
+  <body></body>
+</html>
