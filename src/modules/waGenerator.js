@@ -1,4 +1,5 @@
 import { BANK_ACCOUNTS } from './bankInfo'
+import { productNameOnly } from '../lib/productDisplay'
 
 const rupiah = (value) => new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -15,7 +16,7 @@ export function buildOrderMessage(order = {}) {
   if (!items.length) lines.push('Belum ada produk yang dipilih.')
   items.forEach((item, index) => {
     const total = Number(item.total ?? (Number(item.price || 0) * Number(item.qty || 0)))
-    lines.push(`${index + 1}. ${item.name} x${item.qty} = ${rupiah(total)}`)
+    lines.push(`${index + 1}. ${productNameOnly(item.name)} x${item.qty} = ${rupiah(total)}`)
   })
 
   if (Number(order.shipping || 0) > 0) {
