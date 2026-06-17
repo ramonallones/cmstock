@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { formatRupiah } from '../lib/format'
+import { productNameOnly } from '../lib/productDisplay'
 import { supabase } from '../lib/supabase'
 
 const marketplaces = ['Tokopedia', 'Toco']
@@ -218,7 +219,7 @@ export default function MarketplaceOrders() {
         const { error: itemError } = await supabase.from('order_items').insert({
           order_id: orderId,
           variant_id: item.variant_id,
-          nama_produk_snapshot: `${item.nama_produk} - ${item.nama_varian}`,
+          nama_produk_snapshot: item.nama_produk,
           qty: item.qty,
           harga: item.harga,
           subtotal: item.subtotal,
@@ -301,7 +302,7 @@ export default function MarketplaceOrders() {
               <div className="product-picker">
                 <label className="search-field">
                   <Search size={18} />
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari SKU, produk, brand, atau varian..." />
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari SKU, produk, atau brand..." />
                 </label>
                 {search && (
                   <div className="product-options">
@@ -309,7 +310,7 @@ export default function MarketplaceOrders() {
                     {!loadingProducts && filteredVariants.length === 0 && <span className="picker-message">Produk aktif dengan stok tersedia tidak ditemukan.</span>}
                     {!loadingProducts && filteredVariants.map((variant) => (
                       <button type="button" key={variant.id} onClick={() => selectVariant(variant)}>
-                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku} · {variant.nama_varian}</span></div>
+                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                         <div><strong>{formatRupiah(variant.harga_jual)}</strong><span>Stok: {variant.stok}</span></div>
                       </button>
                     ))}
@@ -319,7 +320,7 @@ export default function MarketplaceOrders() {
                   <div className="selected-product">
                     <div>
                       <strong>{selectedVariant.products?.nama_produk}</strong>
-                      <span>{selectedVariant.nama_varian} - Stok {selectedVariant.stok}</span>
+                      <span>Stok {selectedVariant.stok}</span>
                     </div>
                     <button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button>
                   </div>
@@ -340,7 +341,7 @@ export default function MarketplaceOrders() {
                   {!items.length && <tr><td colSpan="5"><div className="order-empty"><ShoppingBag size={22} /> Belum ada item marketplace.</div></td></tr>}
                   {items.map((item, index) => (
                     <tr key={`${item.variant_id}-${index}`}>
-                      <td><strong className="product-title">{item.nama_produk}</strong><span className="item-kind">{item.nama_varian}</span></td>
+                      <td><strong className="product-title">{productNameOnly(item.nama_produk)}</strong></td>
                       <td>{item.qty} {item.satuan}</td>
                       <td>{formatRupiah(item.harga)}</td>
                       <td className="money">{formatRupiah(item.subtotal)}</td>

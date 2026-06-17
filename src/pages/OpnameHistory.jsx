@@ -65,8 +65,8 @@ export default function OpnameHistory() {
 function OpnameDetail({ opname, onClose }) {
   return <Modal title={`Stock Opname ${opname.tanggal}`} subtitle={`${opname.nama_petugas} · ${opname.status}`} onClose={onClose}>
     <div className="modal-body"><div className="table-wrap"><table className="opname-table">
-      <thead><tr><th>Produk</th><th>Varian</th><th>Stok Sistem</th><th>Stok Fisik</th><th>Selisih</th></tr></thead>
-      <tbody>{(opname.stock_opname_items || []).map((item) => <tr key={item.id}><td>{item.product_variants?.products?.nama_produk || '-'}</td><td>{item.product_variants?.nama_varian || '-'}</td><td>{item.stok_sistem}</td><td>{item.stok_fisik}</td><td><span className={`difference ${item.selisih > 0 ? 'plus' : item.selisih < 0 ? 'minus' : ''}`}>{item.selisih > 0 ? `+${item.selisih}` : item.selisih}</span></td></tr>)}</tbody>
+      <thead><tr><th>Produk</th><th>Stok Sistem</th><th>Stok Fisik</th><th>Selisih</th></tr></thead>
+      <tbody>{(opname.stock_opname_items || []).map((item) => <tr key={item.id}><td>{item.product_variants?.products?.nama_produk || '-'}</td><td>{item.stok_sistem}</td><td>{item.stok_fisik}</td><td><span className={`difference ${item.selisih > 0 ? 'plus' : item.selisih < 0 ? 'minus' : ''}`}>{item.selisih > 0 ? `+${item.selisih}` : item.selisih}</span></td></tr>)}</tbody>
     </table></div></div>
     <div className="modal-footer"><button className="button primary" onClick={onClose}>Tutup</button></div>
   </Modal>

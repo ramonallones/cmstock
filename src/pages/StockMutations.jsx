@@ -174,15 +174,15 @@ export default function StockMutations() {
           <div className="section-title"><span>01</span><h3>Input Mutasi Stok</h3></div>
           <div className="mutation-form-body">
             <div className="product-picker">
-              <label className="search-field"><Search size={18} /><input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Cari SKU, produk, atau varian..." /></label>
+              <label className="search-field"><Search size={18} /><input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Cari SKU, produk, atau brand..." /></label>
               {productSearch && <div className="product-options">
                 {!filteredVariants.length && <span className="picker-message">Produk tidak ditemukan.</span>}
                 {filteredVariants.map((variant) => <button type="button" key={variant.id} onClick={() => selectVariant(variant)}>
-                  <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku} · {variant.nama_varian}</span></div>
+                  <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                   <div><span>Stok: {variant.stok} {variant.satuan}</span></div>
                 </button>)}
               </div>}
-              {selectedVariant && <div className="selected-product"><div><strong>{selectedVariant.products?.nama_produk}</strong><span>{selectedVariant.nama_varian}</span></div><button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button></div>}
+              {selectedVariant && <div className="selected-product"><div><strong>{selectedVariant.products?.nama_produk}</strong><span>Produk dipilih</span></div><button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button></div>}
             </div>
 
             {selectedVariant && <div className="current-stock"><span>Stok Saat Ini</span><strong>{selectedVariant.stok} {selectedVariant.satuan}</strong></div>}

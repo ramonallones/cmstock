@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import { formatRupiah } from '../lib/format'
+import { productNameOnly } from '../lib/productDisplay'
 import { buildLabelHTML, printLabel } from '../modules/labelPrinter'
 import {
   buildBankMessage,
@@ -246,7 +247,7 @@ export default function Orders() {
     total: orderTotal,
     ...labelSettings,
     items: items.map((item) => ({
-      name: item.type === 'sampler' ? item.nama_produk : `${item.nama_produk} - ${item.nama_varian}`,
+      name: item.nama_produk,
       qty: item.qty,
       price: item.harga,
       total: item.subtotal,
@@ -470,12 +471,12 @@ export default function Orders() {
 
     items.forEach((item) => {
       if (item.type === 'product') {
-        addRequirement(item.variant_id, item.qty, `${item.nama_produk} - ${item.nama_varian}`, 'ORDER', '')
+        addRequirement(item.variant_id, item.qty, item.nama_produk, 'ORDER', '')
         return
       }
 
       item.sampler_items.forEach((samplerItem) => {
-        const label = `${samplerItem.product_variants?.products?.nama_produk || 'Produk'} - ${samplerItem.product_variants?.nama_varian || 'Varian'}`
+        const label = samplerItem.product_variants?.products?.nama_produk || 'Produk'
         addRequirement(samplerItem.variant_id, item.qty * Number(samplerItem.qty), label, 'SAMPLER', item.nama_produk)
       })
     })
@@ -544,7 +545,7 @@ export default function Orders() {
         const { error: itemError } = await supabase.from('order_items').insert({
           order_id: orderId,
           variant_id: item.variant_id,
-          nama_produk_snapshot: item.type === 'sampler' ? item.nama_produk : `${item.nama_produk} - ${item.nama_varian}`,
+          nama_produk_snapshot: item.nama_produk,
           qty: item.qty,
           harga: item.harga,
           subtotal: item.subtotal,
@@ -696,7 +697,7 @@ export default function Orders() {
               <div className="product-picker">
                 <label className="search-field">
                   <Search size={18} />
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={itemType === 'product' ? 'Cari SKU, produk, brand, atau varian...' : 'Cari paket sampler...'} />
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={itemType === 'product' ? 'Cari SKU, produk, atau brand...' : 'Cari paket sampler...'} />
                 </label>
                 {search && (
                   <div className="product-options">
@@ -704,7 +705,7 @@ export default function Orders() {
                     {!loadingProducts && itemType === 'product' && filteredVariants.length === 0 && <span className="picker-message">Produk tidak ditemukan.</span>}
                     {!loadingProducts && itemType === 'product' && filteredVariants.map((variant) => (
                       <button type="button" key={variant.id} onClick={() => selectVariant(variant)}>
-                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku} · {variant.nama_varian}</span></div>
+                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                         <div><strong>{formatRupiah(variant.harga_jual)}</strong><span>Stok: {variant.stok}</span></div>
                       </button>
                     ))}
@@ -721,7 +722,7 @@ export default function Orders() {
                   <div className="selected-product">
                     <div>
                       <strong>{itemType === 'product' ? selectedVariant.products?.nama_produk : selectedSampler.nama_paket}</strong>
-                      <span>{itemType === 'product' ? `${selectedVariant.nama_varian} - Stok ${selectedVariant.stok}` : `${selectedSampler.sampler_items?.length || 0} item penyusun`}</span>
+                      <span>{itemType === 'product' ? `Stok ${selectedVariant.stok}` : `${selectedSampler.sampler_items?.length || 0} item penyusun`}</span>
                     </div>
                     <button type="button" onClick={() => { setSelectedVariantId(''); setSelectedSamplerId('') }}>Ganti</button>
                   </div>
@@ -742,7 +743,7 @@ export default function Orders() {
                   {!items.length && <tr><td colSpan="5"><div className="order-empty"><ShoppingBag size={22} /> Belum ada item order.</div></td></tr>}
                   {items.map((item, index) => (
                     <tr key={`${item.type}-${item.item_id}-${index}`}>
-                      <td><strong className="product-title">{item.nama_produk}</strong><span className="item-kind">{item.type === 'sampler' ? 'Paket Sampler' : item.nama_varian}</span></td>
+                      <td><strong className="product-title">{productNameOnly(item.nama_produk)}</strong>{item.type === 'sampler' && <span className="item-kind">Paket Sampler</span>}</td>
                       <td>{item.qty} {item.satuan}</td>
                       <td>{formatRupiah(item.harga)}</td>
                       <td className="money">{formatRupiah(item.subtotal)}</td>

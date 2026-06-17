@@ -290,7 +290,7 @@ export default function StockOpname() {
 
 function StartOpnameModal({ onClose, onStart, loading }) {
   const [form, setForm] = useState({ tanggal: today(), nama_petugas: '', catatan: '' })
-  return <Modal title="Mulai Stock Opname" subtitle="Seluruh varian produk akan dimuat untuk diperiksa." onClose={onClose}>
+  return <Modal title="Mulai Stock Opname" subtitle="Seluruh produk akan dimuat untuk diperiksa." onClose={onClose}>
     <form onSubmit={(event) => { event.preventDefault(); onStart(form) }}>
       <div className="modal-body form-grid">
         <Field label="Tanggal"><input type="date" value={form.tanggal} readOnly /></Field>

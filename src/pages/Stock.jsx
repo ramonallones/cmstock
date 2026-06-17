@@ -190,7 +190,7 @@ export default function Stock() {
   return (
     <div className="page-stack">
       <section className="page-heading">
-        <div><span className="eyebrow">Inventori</span><h2>Stok</h2><p>Monitoring stok aktif dan nilai asset seluruh varian produk.</p></div>
+        <div><span className="eyebrow">Inventori</span><h2>Stok</h2><p>Monitoring stok aktif dan nilai asset seluruh produk.</p></div>
         <button className="button primary" onClick={loadStock} disabled={loading}><RefreshCw className={loading ? 'spin' : ''} size={17} /> Refresh</button>
       </section>
 

@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   Trash2,
 } from 'lucide-react'
+import { productNameOnly } from '../lib/productDisplay'
 import { supabase } from '../lib/supabase'
 
 export default function BonusOrders() {
@@ -167,7 +168,7 @@ export default function BonusOrders() {
             variant_id: item.variant_id,
             tipe: 'BONUS',
             qty: -item.qty,
-            catatan: `${bonusNote} | ${item.nama_produk} - ${item.nama_varian}`,
+            catatan: `${bonusNote} | ${item.nama_produk}`,
             ref_id: null,
           })
           .select('id')
@@ -234,7 +235,7 @@ export default function BonusOrders() {
               <div className="product-picker">
                 <label className="search-field">
                   <Search size={18} />
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari SKU, produk, brand, atau varian..." />
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari SKU, produk, atau brand..." />
                 </label>
                 {search && (
                   <div className="product-options">
@@ -242,7 +243,7 @@ export default function BonusOrders() {
                     {!loadingProducts && filteredVariants.length === 0 && <span className="picker-message">Produk tidak ditemukan.</span>}
                     {!loadingProducts && filteredVariants.map((variant) => (
                       <button type="button" key={variant.id} onClick={() => selectVariant(variant)}>
-                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku} - {variant.nama_varian}</span></div>
+                        <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                         <div><span>Stok: {variant.stok} {variant.satuan}</span></div>
                       </button>
                     ))}
@@ -252,7 +253,7 @@ export default function BonusOrders() {
                   <div className="selected-product">
                     <div>
                       <strong>{selectedVariant.products?.nama_produk}</strong>
-                      <span>{selectedVariant.nama_varian} - Stok {selectedVariant.stok}</span>
+                      <span>Stok {selectedVariant.stok}</span>
                     </div>
                     <button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button>
                   </div>
@@ -272,7 +273,7 @@ export default function BonusOrders() {
                   {!items.length && <tr><td colSpan="3"><div className="order-empty"><ShoppingBag size={22} /> Belum ada item bonus.</div></td></tr>}
                   {items.map((item, index) => (
                     <tr key={`${item.variant_id}-${index}`}>
-                      <td><strong className="product-title">{item.nama_produk}</strong><span className="item-kind">{item.nama_varian}</span></td>
+                      <td><strong className="product-title">{productNameOnly(item.nama_produk)}</strong></td>
                       <td>{item.qty} {item.satuan}</td>
                       <td><button className="icon-button small danger" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Hapus item"><Trash2 size={16} /></button></td>
                     </tr>

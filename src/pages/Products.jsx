@@ -165,7 +165,7 @@ export default function Products() {
   }
 
   const handleDelete = async (product) => {
-    const confirmed = window.confirm(`Hapus produk "${product.nama_produk}" beserta variannya?`)
+    const confirmed = window.confirm(`Hapus produk "${product.nama_produk}" beserta data stoknya?`)
     if (!confirmed) return
 
     setDeletingId(product.id)
@@ -178,7 +178,7 @@ export default function Products() {
       .eq('product_id', product.id)
 
     if (variantError) {
-      console.error('Gagal menghapus varian produk:', variantError)
+      console.error('Gagal menghapus data stok produk:', variantError)
       setError(variantError.message)
       setDeletingId(null)
       return
@@ -555,7 +555,7 @@ function BulkUnitModal({ productIds, onClose, onSuccess }) {
   return (
     <Modal
       title="Edit Satuan Massal"
-      subtitle={`Ubah satuan seluruh varian dari ${productIds.length} produk terpilih.`}
+      subtitle={`Ubah satuan ${productIds.length} produk terpilih.`}
       onClose={() => !saving && onClose()}
     >
       <form onSubmit={handleSubmit}>
@@ -598,7 +598,6 @@ const importColumns = [
   'brand',
   'nama_produk',
   'kategori',
-  'nama_varian',
   'satuan',
   'harga_jual',
   'stok_awal',
@@ -618,7 +617,7 @@ const normalizeImportRow = (row) => ({
   brand: String(row.brand ?? '').trim(),
   nama_produk: String(row.nama_produk ?? '').trim(),
   kategori: String(row.kategori ?? '').trim(),
-  nama_varian: String(row.nama_varian ?? '').trim(),
+  nama_varian: String(row.nama_varian ?? row.nama_produk ?? '').trim(),
   satuan: String(row.satuan ?? '').trim(),
   harga_jual: Number(row.harga_jual) || 0,
   stok_awal: Number(row.stok_awal) || 0,
@@ -697,8 +696,8 @@ function ImportExcelModal({ onClose, onImported }) {
         continue
       }
 
-      if (!row.nama_produk || !row.nama_varian || !row.satuan) {
-        failures.push({ sku: row.sku, reason: 'Nama produk, nama varian, atau satuan kosong' })
+      if (!row.nama_produk || !row.satuan) {
+        failures.push({ sku: row.sku, reason: 'Nama produk atau satuan kosong' })
         continue
       }
 
@@ -733,7 +732,7 @@ function ImportExcelModal({ onClose, onImported }) {
         })
 
       if (variantError) {
-        console.error(`Gagal import varian SKU ${row.sku}:`, variantError)
+        console.error(`Gagal import data stok SKU ${row.sku}:`, variantError)
         const { error: cleanupError } = await supabase.from('products').delete().eq('id', product.id)
         if (cleanupError) console.error(`Gagal membersihkan produk SKU ${row.sku}:`, cleanupError)
         failures.push({ sku: row.sku, reason: variantError.message })
@@ -943,7 +942,7 @@ function ProductModal({ product, productOptions, onClose, onSuccess }) {
 
     const variantPayload = {
       product_id: productId,
-      nama_varian: form.nama_varian.trim(),
+      nama_varian: form.nama_varian.trim() || form.nama_produk.trim() || 'Utama',
       satuan: form.satuan.trim(),
       harga_jual: Number(form.harga_jual),
       stok: Number(form.stok),
@@ -966,7 +965,7 @@ function ProductModal({ product, productOptions, onClose, onSuccess }) {
     }
 
     if (variantError) {
-      console.error(product ? 'Gagal mengubah varian produk:' : 'Gagal menambahkan varian produk:', variantError)
+      console.error(product ? 'Gagal mengubah data stok produk:' : 'Gagal menambahkan data stok produk:', variantError)
       setError(variantError.message)
       setSaving(false)
       return
@@ -979,7 +978,7 @@ function ProductModal({ product, productOptions, onClose, onSuccess }) {
   return (
     <Modal
       title={product ? 'Edit Produk' : 'Tambah Produk'}
-      subtitle={product ? 'Perbarui data produk dan varian utama.' : 'Produk dan varian utama akan disimpan bersama.'}
+      subtitle={product ? 'Perbarui data produk dan stok utama.' : 'Produk dan stok utama akan disimpan bersama.'}
       onClose={() => !saving && onClose()}
     >
       <form onSubmit={handleSubmit}>
@@ -1020,9 +1019,6 @@ function ProductModal({ product, productOptions, onClose, onSuccess }) {
             <datalist id="product-category-options">
               {categories.map((item) => <option key={item} value={item} />)}
             </datalist>
-          </Field>
-          <Field label="Nama Varian">
-            <input value={form.nama_varian} onChange={(event) => updateField('nama_varian', event.target.value)} required />
           </Field>
           <Field label="Satuan">
             <input value={form.satuan} onChange={(event) => updateField('satuan', event.target.value)} required />

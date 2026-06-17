@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import { formatRupiah } from '../lib/format'
+import { productNameOnly } from '../lib/productDisplay'
 import { supabase } from '../lib/supabase'
 import { BANK_ACCOUNTS } from '../modules/bankInfo'
 import { buildTrackingMessage, copyToClipboard } from '../modules/waGenerator'
@@ -229,7 +230,7 @@ export default function OrderHistory() {
     const itemRows = (order.order_items || []).map((item, index) => `
       <tr>
         <td>${index + 1}</td>
-        <td>${escapeHtml(item.nama_produk_snapshot)}</td>
+        <td>${escapeHtml(productNameOnly(item.nama_produk_snapshot))}</td>
         <td class="center">${escapeHtml(item.qty)}</td>
         <td class="right">${formatRupiah(item.harga)}</td>
         <td class="right">${formatRupiah(item.subtotal)}</td>
@@ -488,7 +489,7 @@ function OrderDetail({ order, onClose, onInvoice, onTracking }) {
           <table className="order-items-table">
             <thead><tr><th>Produk</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr></thead>
             <tbody>{(order.order_items || []).map((item) => (
-              <tr key={item.id}><td>{item.nama_produk_snapshot}</td><td>{item.qty}</td><td>{formatRupiah(item.harga)}</td><td className="money">{formatRupiah(item.subtotal)}</td></tr>
+              <tr key={item.id}><td>{productNameOnly(item.nama_produk_snapshot)}</td><td>{item.qty}</td><td>{formatRupiah(item.harga)}</td><td className="money">{formatRupiah(item.subtotal)}</td></tr>
             ))}</tbody>
           </table>
         </div>

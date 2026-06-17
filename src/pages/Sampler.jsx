@@ -297,18 +297,18 @@ function SamplerFormModal({ samplerPackage, onClose, onSuccess }) {
             <div><span className="eyebrow">Isi Paket</span><strong>Tambah produk penyusun</strong></div>
             <div className="sampler-item-picker">
               <div className="product-picker">
-                <label className="search-field"><Search size={17} /><input value={search} onFocus={() => setPickerOpen(true)} onChange={(event) => { setSearch(event.target.value); setPickerOpen(true) }} placeholder="Cari produk atau varian..." /></label>
+                <label className="search-field"><Search size={17} /><input value={search} onFocus={() => setPickerOpen(true)} onChange={(event) => { setSearch(event.target.value); setPickerOpen(true) }} placeholder="Cari produk, SKU, atau brand..." /></label>
                 {pickerOpen && <div className="product-options">
                   {loadingVariants && <span className="picker-message"><LoaderCircle className="spin" size={16} /> Memuat...</span>}
                   {!loadingVariants && filteredVariants.length === 0 && <span className="picker-message">Belum ada produk aktif dengan stok tersedia.</span>}
                   {!loadingVariants && filteredVariants.map((variant) => (
                     <button type="button" key={variant.id} onClick={() => { setSelectedVariantId(variant.id); setSearch(''); setPickerOpen(false) }}>
-                      <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku} · {variant.nama_varian}</span></div>
+                      <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                       <div><span>Stok: {variant.stok}</span></div>
                     </button>
                   ))}
                 </div>}
-                {selectedVariant && <div className="selected-product"><div><strong>{selectedVariant.products?.nama_produk}</strong><span>{selectedVariant.nama_varian} · Stok {selectedVariant.stok}</span></div><button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button></div>}
+                {selectedVariant && <div className="selected-product"><div><strong>{selectedVariant.products?.nama_produk}</strong><span>Stok {selectedVariant.stok}</span></div><button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button></div>}
               </div>
               <Field label="Qty"><input type="number" min="1" value={qty} onChange={(event) => setQty(event.target.value)} /></Field>
               <button type="button" className="button primary" onClick={addItem}><Plus size={16} /> Tambah</button>
@@ -317,13 +317,12 @@ function SamplerFormModal({ samplerPackage, onClose, onSuccess }) {
 
           <div className="table-wrap sampler-items-editor">
             <table className="order-items-table">
-              <thead><tr><th>Produk</th><th>Varian</th><th>Stok</th><th>Qty</th><th>Kapasitas</th><th /></tr></thead>
+              <thead><tr><th>Produk</th><th>Stok</th><th>Qty</th><th>Kapasitas</th><th /></tr></thead>
               <tbody>
-                {!items.length && <tr><td colSpan="6"><div className="order-empty">Belum ada isi paket.</div></td></tr>}
+                {!items.length && <tr><td colSpan="5"><div className="order-empty">Belum ada isi paket.</div></td></tr>}
                 {items.map((item) => (
                   <tr key={item.variant_id}>
                     <td>{item.product_variants?.products?.nama_produk || '-'}</td>
-                    <td>{item.product_variants?.nama_varian || '-'}</td>
                     <td>{item.product_variants?.stok ?? 0}</td>
                     <td>{item.qty}</td>
                     <td>{Math.floor((Number(item.product_variants?.stok) || 0) / item.qty)} paket</td>
@@ -350,9 +349,9 @@ function SamplerDetail({ samplerPackage, onClose }) {
       <div className="modal-body">
         <div className="table-wrap">
           <table className="order-items-table">
-            <thead><tr><th>Nama Produk</th><th>Varian</th><th>Qty</th><th>Stok</th></tr></thead>
+            <thead><tr><th>Nama Produk</th><th>Qty</th><th>Stok</th></tr></thead>
             <tbody>{(samplerPackage.sampler_items || []).map((item) => (
-              <tr key={item.id}><td>{item.product_variants?.products?.nama_produk || '-'}</td><td>{item.product_variants?.nama_varian || '-'}</td><td>{item.qty}</td><td>{item.product_variants?.stok ?? 0}</td></tr>
+              <tr key={item.id}><td>{item.product_variants?.products?.nama_produk || '-'}</td><td>{item.qty}</td><td>{item.product_variants?.stok ?? 0}</td></tr>
             ))}</tbody>
           </table>
         </div>
