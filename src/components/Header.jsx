@@ -2,15 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, CheckCheck, LogOut, Menu, Search } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
-import { formatRupiah } from '../lib/format'
+import { formatRupiah, formatShortDateTimeWIB } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import { findNavItem } from './navigation'
 
 const lowStockLimit = 5
-
-const formatDateTime = (value) => value
-  ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
-  : 'Baru saja'
 
 const makeNotificationId = (type, id, time = Date.now()) => `${type}-${id || time}-${time}`
 
@@ -252,7 +248,7 @@ export default function Header({ onMenuClick }) {
                   >
                     <span>{notification.title}</span>
                     <p>{notification.message}</p>
-                    <small>{formatDateTime(notification.time)}</small>
+                    <small>{notification.time ? formatShortDateTimeWIB(notification.time) : 'Baru saja'}</small>
                   </button>
                 ))}
               </div>

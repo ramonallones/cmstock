@@ -9,53 +9,52 @@ import {
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
-import { formatRupiah } from '../lib/format'
+import {
+  currentMonthValueWIB,
+  formatDateTimeWIB,
+  formatFullDateWIB,
+  formatMonthWIB,
+  getWibDateParts,
+  formatInputDateWIB,
+  formatRupiah,
+} from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 const formatNumber = (value) => new Intl.NumberFormat('id-ID').format(Number(value) || 0)
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
-  : '-'
-
-const formatMonth = (value) => new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(value)
-
-const currentMonthValue = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
 
 const todayRange = () => {
-  const now = new Date()
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  const nextDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+  const date = formatInputDateWIB()
+  const { year, month, day } = getWibDateParts()
+  const tomorrow = new Date(Date.UTC(year, month - 1, day + 1, 12))
+  const nextDate = formatInputDateWIB(tomorrow)
   return {
     start: `${date}T00:00:00+07:00`,
     end: `${nextDate}T00:00:00+07:00`,
   }
 }
 
-const monthRange = (monthValue = currentMonthValue()) => {
+const monthRange = (monthValue = currentMonthValueWIB()) => {
   const [year, month] = monthValue.split('-').map(Number)
-  const startDate = new Date(year, month - 1, 1)
-  const endDate = new Date(year, month, 1)
-  const endMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`
+  const endMonthDate = new Date(Date.UTC(year, month, 1, 12))
+  const endMonth = currentMonthValueWIB(endMonthDate)
+  const startDate = new Date(Date.UTC(year, month - 1, 1, 12))
   return {
     start: `${monthValue}-01T00:00:00+07:00`,
     end: `${endMonth}-01T00:00:00+07:00`,
-    days: new Date(year, month, 0).getDate(),
-    label: formatMonth(startDate),
+    days: new Date(Date.UTC(year, month, 0)).getUTCDate(),
+    label: formatMonthWIB(startDate),
     year,
     month,
   }
 }
 
-const yearRange = (year = new Date().getFullYear()) => {
-  const start = new Date(year, 0, 1)
+const yearRange = (year = getWibDateParts().year) => {
+  const start = new Date(Date.UTC(year, 0, 1, 12))
+  const end = new Date(Date.UTC(year, 11, 1, 12))
   return {
     start: `${year}-01-01T00:00:00+07:00`,
     end: `${year + 1}-01-01T00:00:00+07:00`,
-    label: `${formatMonth(start)} - ${formatMonth(new Date(year, 11, 1))}`,
+    label: `${formatMonthWIB(start)} - ${formatMonthWIB(end)}`,
   }
 }
 
@@ -69,7 +68,7 @@ const getOrderProductTotal = (order = {}) =>
   (order.order_items || []).reduce((total, item) => total + (Number(item.subtotal) || 0), 0)
 
 export default function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthValue)
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthValueWIB)
   const [stats, setStats] = useState({
     ordersToday: 0,
     directSalesToday: 0,
@@ -132,7 +131,7 @@ export default function Dashboard() {
       orders: 0,
     }))
     monthOrders.forEach((order) => {
-      const day = new Date(order.created_at).getDate()
+      const day = getWibDateParts(order.created_at).day
       if (!dailyTotals[day - 1]) return
       dailyTotals[day - 1].total += getOrderProductTotal(order)
       dailyTotals[day - 1].orders += 1
@@ -205,14 +204,14 @@ export default function Dashboard() {
     <div className="page-stack">
       <section className="welcome-panel">
         <div>
-          <span className="eyebrow">{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date())}</span>
+          <span className="eyebrow">{formatFullDateWIB()}</span>
           <h2>Selamat datang kembali.</h2>
           <p>Pantau produk, stok, dan aktivitas toko dari satu tempat.</p>
         </div>
         <div className="welcome-actions">
           <label className="dashboard-month-filter">
             <span>Periode</span>
-            <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonthValue())} />
+            <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonthValueWIB())} />
           </label>
           <button className="button dashboard-refresh" onClick={loadDashboard} disabled={loading}>
             <RefreshCw className={loading ? 'spin' : ''} size={17} /> Refresh Dashboard
@@ -292,7 +291,7 @@ export default function Dashboard() {
                   <td>{order.nama_customer || '-'}</td>
                   <td className="money">{formatRupiah(getOrderProductTotal(order))}</td>
                   <td><span className={`order-status ${order.status || 'baru'}`}>{order.status || 'baru'}</span></td>
-                  <td>{formatDate(order.created_at)}</td>
+                  <td>{formatDateTimeWIB(order.created_at)}</td>
                 </tr>)}
               </tbody>
             </table>

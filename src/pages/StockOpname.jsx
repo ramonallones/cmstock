@@ -10,13 +10,8 @@ import {
   Search,
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import { formatInputDateWIB } from '../lib/format'
 import { supabase } from '../lib/supabase'
-
-const today = () => {
-  const date = new Date()
-  const offset = date.getTimezoneOffset()
-  return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 10)
-}
 
 export default function StockOpname() {
   const [session, setSession] = useState(null)
@@ -289,7 +284,7 @@ export default function StockOpname() {
 }
 
 function StartOpnameModal({ onClose, onStart, loading }) {
-  const [form, setForm] = useState({ tanggal: today(), nama_petugas: '', catatan: '' })
+  const [form, setForm] = useState({ tanggal: formatInputDateWIB(), nama_petugas: '', catatan: '' })
   return <Modal title="Mulai Stock Opname" subtitle="Seluruh produk akan dimuat untuk diperiksa." onClose={onClose}>
     <form onSubmit={(event) => { event.preventDefault(); onStart(form) }}>
       <div className="modal-body form-grid">

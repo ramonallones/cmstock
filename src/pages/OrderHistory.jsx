@@ -11,7 +11,7 @@ import {
   Truck,
 } from 'lucide-react'
 import Modal from '../components/Modal'
-import { formatRupiah } from '../lib/format'
+import { formatDateTimeWIB, formatRupiah } from '../lib/format'
 import { productNameOnly } from '../lib/productDisplay'
 import { supabase } from '../lib/supabase'
 import { BANK_ACCOUNTS } from '../modules/bankInfo'
@@ -21,10 +21,6 @@ const pageSize = 25
 const statuses = ['', 'diproses', 'dikirim']
 const trackingStorageKey = 'cm_order_tracking_overrides'
 const couriers = ['JNE REG', 'JNE YES', 'J&T', 'SiCepat', 'Anteraja', 'POS', 'Wahana', 'GoSend', 'GrabExpress', 'COD', 'Ambil di Toko']
-
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-  : '-'
 
 const escapeHtml = (value) => String(value ?? '-')
   .replaceAll('&', '&amp;')
@@ -310,7 +306,7 @@ export default function OrderHistory() {
           <div class="invoice-title">
             <h2>INVOICE</h2>
             <span>No. Invoice: <b>${escapeHtml(order.nomor_order)}</b></span>
-            <span>Tanggal: ${formatDate(order.created_at)}</span>
+            <span>Tanggal: ${formatDateTimeWIB(order.created_at)}</span>
           </div>
         </section>
 
@@ -427,7 +423,7 @@ export default function OrderHistory() {
                 return (
                   <tr key={order.id}>
                     <td><span className="sku">{order.nomor_order}</span></td>
-                    <td>{formatDate(order.created_at)}</td>
+                    <td>{formatDateTimeWIB(order.created_at)}</td>
                     <td><div className="product-name"><strong>{order.nama_customer || '-'}</strong><span>{order.no_wa || '-'}</span></div></td>
                     <td><span className={`order-status ${displayStatus}`}>{formatStatus(displayStatus)}</span></td>
                     <td>{order.order_items?.length || 0}</td>
@@ -475,7 +471,7 @@ export default function OrderHistory() {
 function OrderDetail({ order, onClose, onInvoice, onTracking }) {
   const displayStatus = getDisplayStatus(order)
   return (
-    <Modal title={order.nomor_order} subtitle={`${formatDate(order.created_at)} · ${order.status || 'baru'}`} onClose={onClose}>
+    <Modal title={order.nomor_order} subtitle={`${formatDateTimeWIB(order.created_at)} · ${order.status || 'baru'}`} onClose={onClose}>
       <div className="modal-body order-detail">
         <div className="detail-customer">
           <div><span>Customer</span><strong>{order.nama_customer || '-'}</strong></div>

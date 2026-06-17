@@ -14,7 +14,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import Modal from '../components/Modal'
-import { formatRupiah } from '../lib/format'
+import { formatDatePartWIB, formatRupiah } from '../lib/format'
 import { productNameOnly } from '../lib/productDisplay'
 import { buildLabelHTML, printLabel } from '../modules/labelPrinter'
 import {
@@ -42,13 +42,6 @@ const defaultLabelSettings = {
   logo_url: '',
   tagline: 'whatever price or origin, a good cigar is a good cigar!',
   footer_note: 'CERUTUMURAH.COM',
-}
-
-const formatDatePart = (date = new Date()) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}${month}${day}`
 }
 
 const cleanText = (value) => String(value ?? '').trim()
@@ -432,7 +425,7 @@ export default function Orders() {
   }
 
   const createOrderNumber = async () => {
-    const prefix = `CM-${formatDatePart()}-`
+    const prefix = `CM-${formatDatePartWIB()}-`
     const { count, error: countError } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })

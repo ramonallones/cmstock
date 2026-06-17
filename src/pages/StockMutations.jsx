@@ -7,13 +7,11 @@ import {
   Search,
   SlidersHorizontal,
 } from 'lucide-react'
+import { formatDateTimeWIB } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 const mutationTypes = ['RESTOCK', 'RUSAK', 'RETUR', 'KOREKSI']
 const pageSize = 25
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-  : '-'
 
 export default function StockMutations() {
   const [variants, setVariants] = useState([])
@@ -219,7 +217,7 @@ export default function StockMutations() {
             {loading && <tr><td colSpan="5"><div className="empty-state"><LoaderCircle className="spin" /><strong>Memuat riwayat...</strong></div></td></tr>}
             {!loading && !history.length && <tr><td colSpan="5"><div className="empty-state"><strong>Belum ada riwayat mutasi</strong></div></td></tr>}
             {!loading && history.map((mutation) => <tr key={mutation.id}>
-              <td>{formatDate(mutation.created_at)}</td>
+              <td>{formatDateTimeWIB(mutation.created_at)}</td>
               <td><div className="product-name"><strong>{mutation.product_variants?.products?.nama_produk || '-'}</strong><span>{mutation.product_variants?.products?.sku || '-'}</span></div></td>
               <td><span className={`mutation-type ${mutation.tipe?.toLowerCase()}`}>{mutation.tipe}</span></td>
               <td><span className={`difference ${mutation.qty > 0 ? 'plus' : mutation.qty < 0 ? 'minus' : ''}`}>{mutation.qty > 0 ? `+${mutation.qty}` : mutation.qty}</span></td>
