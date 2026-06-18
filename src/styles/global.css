@@ -957,6 +957,11 @@ body {
   box-shadow: 0 24px 55px rgba(0, 0, 0, .18);
 }
 
+.welcome-panel .eyebrow {
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .28);
+}
+
 .welcome-panel p,
 .dashboard-month-filter span,
 .welcome-visual {
