@@ -45,7 +45,20 @@ const wibPartFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: WIB_TIME_ZONE,
 })
 
-const toDate = (value = new Date()) => value instanceof Date ? value : new Date(value)
+const hasTimezone = (value) => /(?:z|[+-]\d{2}:?\d{2})$/i.test(value)
+const isDateTime = (value) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)
+
+const toDate = (value = new Date()) => {
+  if (value instanceof Date) return value
+  if (typeof value !== 'string') return new Date(value)
+
+  const cleanValue = value.trim()
+  if (isDateTime(cleanValue) && !hasTimezone(cleanValue)) {
+    return new Date(`${cleanValue}Z`)
+  }
+
+  return new Date(cleanValue)
+}
 
 export const formatDateTimeWIB = (value) => {
   if (!value) return '-'
