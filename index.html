@@ -12,7 +12,7 @@
       const redirect = params.get("redirect");
 
       if (redirect) {
-        const cleanUrl = "/cmstock" + redirect;
+        const cleanUrl = redirect.startsWith("/") ? redirect : "/" + redirect;
         window.history.replaceState(null, "", cleanUrl);
       }
     </script>
