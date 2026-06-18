@@ -19,7 +19,6 @@ import { buildTrackingMessage, copyToClipboard } from '../modules/waGenerator'
 
 const pageSize = 25
 const statuses = ['', 'diproses', 'dikirim']
-const trackingStorageKey = 'cm_order_tracking_overrides'
 const couriers = ['JNE REG', 'JNE YES', 'J&T', 'SiCepat', 'Anteraja', 'POS', 'Wahana', 'GoSend', 'GrabExpress', 'COD', 'Ambil di Toko']
 
 const escapeHtml = (value) => String(value ?? '-')
@@ -32,24 +31,11 @@ const escapeHtml = (value) => String(value ?? '-')
 const getItemsSubtotal = (order) =>
   (order.order_items || []).reduce((total, item) => total + Number(item.subtotal || 0), 0)
 
-const readTrackingOverrides = () => {
-  try {
-    return JSON.parse(localStorage.getItem(trackingStorageKey) || '{}')
-  } catch {
-    return {}
-  }
-}
-
-const writeTrackingOverride = (orderId, value) => {
-  const current = readTrackingOverrides()
-  localStorage.setItem(trackingStorageKey, JSON.stringify({ ...current, [orderId]: value }))
-}
-
 const getTrackingNumber = (order = {}) =>
-  String(order.nomor_resi ?? order.resi ?? order.tracking_number ?? order.local_tracking_number ?? '').trim()
+  String(order.nomor_resi ?? order.resi ?? order.tracking_number ?? '').trim()
 
 const getCourier = (order = {}) =>
-  String(order.ekspedisi ?? order.courier ?? order.local_courier ?? '').trim()
+  String(order.ekspedisi ?? order.courier ?? '').trim()
 
 const isMarketplaceOrder = (order = {}) => {
   const customer = String(order.nama_customer || '').toLowerCase()
@@ -71,16 +57,14 @@ const buildHistoryTrackingMessage = (order = {}, trackingNumber, courier) => bui
   tracking_number: trackingNumber,
 })
 
-const trackingUpdatePayloads = (trackingNumber, courier) => {
-  const withCourier = courier ? { ekspedisi: courier } : {}
-  return [
-    { status: 'dikirim', nomor_resi: trackingNumber, ...withCourier },
-    { status: 'dikirim', nomor_resi: trackingNumber },
-    { status: 'dikirim', resi: trackingNumber },
-    { status: 'dikirim', tracking_number: trackingNumber },
-    { status: 'dikirim' },
-  ]
-}
+const buildTrackingUpdatePayload = (trackingNumber, courier) => ({
+  status: 'dikirim',
+  nomor_resi: trackingNumber,
+  ekspedisi: courier || null,
+})
+
+const isMissingTrackingColumnError = (error) =>
+  error?.code === 'PGRST204' && /'(nomor_resi|ekspedisi)' column/i.test(error.message || '')
 
 export default function OrderHistory() {
   const [orders, setOrders] = useState([])
@@ -123,11 +107,9 @@ export default function OrderHistory() {
       setOrders([])
       setError(queryError.message)
     } else {
-      const trackingOverrides = readTrackingOverrides()
-      const normalizedOrders = (data || []).map((order) => ({ ...order, ...(trackingOverrides[order.id] || {}) }))
       const filteredOrders = shouldFilterStatus
-        ? normalizedOrders.filter((order) => getDisplayStatus(order) === status)
-        : normalizedOrders
+        ? (data || []).filter((order) => getDisplayStatus(order) === status)
+        : data || []
       setOrders(shouldFilterStatus ? filteredOrders.slice(from, to + 1) : filteredOrders)
       setTotalOrders(shouldFilterStatus ? filteredOrders.length : count || 0)
     }
@@ -159,34 +141,23 @@ export default function OrderHistory() {
     setSavingTracking(true)
     setError('')
 
-    let savedOrder = null
-    let lastError = null
-    for (const payload of trackingUpdatePayloads(cleanTrackingNumber, cleanCourier)) {
-      const { data, error: updateError } = await supabase
-        .from('orders')
-        .update(payload)
-        .eq('id', trackingOrder.id)
-        .select()
-        .single()
-
-      if (!updateError) {
-        savedOrder = data
-        lastError = null
-        break
-      }
-      lastError = updateError
-    }
+    const { data: savedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update(buildTrackingUpdatePayload(cleanTrackingNumber, cleanCourier))
+      .eq('id', trackingOrder.id)
+      .select()
+      .single()
 
     setSavingTracking(false)
-    if (lastError) {
-      console.error('Gagal menyimpan resi:', lastError)
-      setError(lastError.message || 'Gagal menyimpan nomor resi.')
+    if (updateError) {
+      console.error('Gagal menyimpan resi:', updateError)
+      setError(isMissingTrackingColumnError(updateError)
+        ? 'Kolom nomor_resi dan ekspedisi belum ada di database Supabase. Jalankan migrasi database dulu, lalu coba simpan resi lagi.'
+        : updateError.message || 'Gagal menyimpan nomor resi.')
       return
     }
 
-    const override = { local_tracking_number: cleanTrackingNumber, local_courier: cleanCourier }
-    writeTrackingOverride(trackingOrder.id, override)
-    const updatedOrder = { ...trackingOrder, ...(savedOrder || {}), ...override, status: 'dikirim' }
+    const updatedOrder = { ...trackingOrder, ...(savedOrder || {}), status: 'dikirim' }
     setOrders((current) => current.map((order) => order.id === trackingOrder.id ? updatedOrder : order))
     setTrackingOrder(updatedOrder)
     setSelectedOrder((current) => current?.id === trackingOrder.id ? updatedOrder : current)
