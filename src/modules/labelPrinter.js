@@ -1,5 +1,5 @@
 import cheUrl from '../assets/logo.png'
-import defaultLogoUrl from '../assets/logos.png'
+import defaultLogoUrl from '../assets/label-print-logo.png'
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
   '&': '&amp;',
