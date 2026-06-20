@@ -21,9 +21,12 @@ export default function MarketplaceOrders() {
   const [invoice, setInvoice] = useState('')
   const [note, setNote] = useState('')
   const [variants, setVariants] = useState([])
+  const [samplers, setSamplers] = useState([])
   const [items, setItems] = useState([])
+  const [itemType, setItemType] = useState('product')
   const [search, setSearch] = useState('')
   const [selectedVariantId, setSelectedVariantId] = useState('')
+  const [selectedSamplerId, setSelectedSamplerId] = useState('')
   const [qty, setQty] = useState(1)
   const [price, setPrice] = useState('')
   const [loadingProducts, setLoadingProducts] = useState(true)
@@ -32,27 +35,36 @@ export default function MarketplaceOrders() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadOrderOptions = async () => {
       setLoadingProducts(true)
-      const { data, error: queryError } = await supabase
-        .from('product_variants')
-        .select('id, product_id, nama_varian, satuan, harga_jual, stok, dijual, products(id, sku, nama_produk, brand, aktif)')
-        .eq('dijual', true)
-        .gt('stok', 0)
-        .order('nama_varian')
-        .limit(500)
+      const [variantResult, samplerResult] = await Promise.all([
+        supabase
+          .from('product_variants')
+          .select('id, product_id, nama_varian, satuan, harga_jual, stok, dijual, products(id, sku, nama_produk, brand, aktif)')
+          .eq('dijual', true)
+          .gt('stok', 0)
+          .order('nama_varian')
+          .limit(500),
+        supabase
+          .from('sampler_packages')
+          .select('id, nama_paket, harga_jual, aktif, sampler_items(id, sampler_id, variant_id, qty, product_variants(id, nama_varian, stok, dijual, products(id, nama_produk, aktif)))')
+          .eq('aktif', true)
+          .order('nama_paket')
+          .limit(500),
+      ])
 
-      if (queryError) {
+      if (variantResult.error || samplerResult.error) {
+        const queryError = variantResult.error || samplerResult.error
         console.error('Gagal memuat produk marketplace:', queryError)
         setError(queryError.message)
-        setVariants([])
       } else {
-        setVariants(data || [])
+        setVariants(variantResult.data || [])
+        setSamplers(samplerResult.data || [])
       }
       setLoadingProducts(false)
     }
 
-    loadProducts()
+    loadOrderOptions()
   }, [])
 
   const filteredVariants = useMemo(() => {
@@ -70,7 +82,27 @@ export default function MarketplaceOrders() {
       .slice(0, 30)
   }, [search, variants])
 
+  const samplerAvailableQty = (sampler) => {
+    const samplerItems = sampler.sampler_items || []
+    if (!samplerItems.length) return 0
+    return Math.min(...samplerItems.map((samplerItem) => {
+      const variant = samplerItem.product_variants || {}
+      const product = variant.products || {}
+      if (!product.aktif || !variant.dijual || Number(samplerItem.qty) <= 0) return 0
+      return Math.floor(Number(variant.stok || 0) / Number(samplerItem.qty))
+    }))
+  }
+
+  const filteredSamplers = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    return samplers
+      .filter((sampler) => samplerAvailableQty(sampler) > 0 && sampler.nama_paket?.toLowerCase().includes(keyword))
+      .slice(0, 30)
+  }, [samplers, search])
+
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId)
+  const selectedSampler = samplers.find((sampler) => sampler.id === selectedSamplerId)
+  const selectedItem = itemType === 'product' ? selectedVariant : selectedSampler
   const subtotal = items.reduce((total, item) => total + item.subtotal, 0)
 
   const selectVariant = (variant) => {
@@ -80,29 +112,66 @@ export default function MarketplaceOrders() {
     setSearch('')
   }
 
+  const selectSampler = (sampler) => {
+    setSelectedSamplerId(sampler.id)
+    setPrice(sampler.harga_jual ?? 0)
+    setQty(1)
+    setSearch('')
+  }
+
+  const changeItemType = (type) => {
+    setItemType(type)
+    setSelectedVariantId('')
+    setSelectedSamplerId('')
+    setSearch('')
+    setPrice('')
+    setQty(1)
+  }
+
   const addItem = () => {
     setError('')
     const numericQty = Number(qty)
     const numericPrice = Number(price)
 
-    if (!selectedVariant) return setError('Pilih produk terlebih dahulu.')
-    if (!selectedVariant.products?.aktif || !selectedVariant.dijual || Number(selectedVariant.stok) <= 0) return setError('Produk ini tidak aktif atau stoknya kosong.')
+    if (!selectedItem) return setError(`Pilih ${itemType === 'product' ? 'produk' : 'paket sampler'} terlebih dahulu.`)
     if (numericQty <= 0) return setError('Qty harus lebih dari 0.')
-    if (numericQty > Number(selectedVariant.stok)) return setError(`Stok tidak mencukupi. Tersedia: ${selectedVariant.stok}.`)
+    if (itemType === 'product' && (!selectedVariant.products?.aktif || !selectedVariant.dijual || Number(selectedVariant.stok) <= 0)) return setError('Produk ini tidak aktif atau stoknya kosong.')
+    if (itemType === 'product' && numericQty > Number(selectedVariant.stok)) return setError(`Stok tidak mencukupi. Tersedia: ${selectedVariant.stok}.`)
+    if (itemType === 'sampler' && !selectedSampler.sampler_items?.length) return setError('Paket sampler belum memiliki item penyusun.')
+    if (itemType === 'sampler' && numericQty > samplerAvailableQty(selectedSampler)) return setError(`Stok penyusun paket sampler tidak mencukupi. Maksimal order: ${samplerAvailableQty(selectedSampler)} paket.`)
 
     setItems((current) => {
-      const existingIndex = current.findIndex((item) => item.variant_id === selectedVariant.id)
+      const itemKey = itemType === 'product' ? selectedVariant.id : selectedSampler.id
+      const existingIndex = current.findIndex((item) => item.type === itemType && item.item_id === itemKey)
       const nextQty = existingIndex === -1 ? numericQty : current[existingIndex].qty + numericQty
-      if (nextQty > Number(selectedVariant.stok)) {
+      if (itemType === 'product' && nextQty > Number(selectedVariant.stok)) {
         setError(`Total qty melebihi stok tersedia: ${selectedVariant.stok}.`)
         return current
       }
+      if (itemType === 'sampler' && nextQty > samplerAvailableQty(selectedSampler)) {
+        setError(`Total qty melebihi stok penyusun paket sampler. Maksimal order: ${samplerAvailableQty(selectedSampler)} paket.`)
+        return current
+      }
 
-      const newItem = {
+      const newItem = itemType === 'product' ? {
+        type: 'product',
+        item_id: selectedVariant.id,
         variant_id: selectedVariant.id,
         nama_produk: selectedVariant.products?.nama_produk || '-',
         nama_varian: selectedVariant.nama_varian || '-',
         satuan: selectedVariant.satuan || '',
+        sampler_items: [],
+        qty: numericQty,
+        harga: numericPrice,
+        subtotal: numericQty * numericPrice,
+      } : {
+        type: 'sampler',
+        item_id: selectedSampler.id,
+        variant_id: null,
+        nama_produk: selectedSampler.nama_paket,
+        nama_varian: 'Paket Sampler',
+        satuan: 'paket',
+        sampler_items: selectedSampler.sampler_items || [],
         qty: numericQty,
         harga: numericPrice,
         subtotal: numericQty * numericPrice,
@@ -115,6 +184,7 @@ export default function MarketplaceOrders() {
     })
 
     setSelectedVariantId('')
+    setSelectedSamplerId('')
     setPrice('')
     setQty(1)
   }
@@ -124,8 +194,10 @@ export default function MarketplaceOrders() {
     setInvoice('')
     setNote('')
     setItems([])
+    setItemType('product')
     setSearch('')
     setSelectedVariantId('')
+    setSelectedSamplerId('')
     setQty(1)
     setPrice('')
     setError('')
@@ -159,6 +231,32 @@ export default function MarketplaceOrders() {
     if (orderError) console.error('Gagal rollback order marketplace:', orderError)
   }
 
+  const buildStockRequirements = () => {
+    const requirements = new Map()
+
+    const addRequirement = (variantId, qtyNeeded, label, mutationType, mutationNote) => {
+      const current = requirements.get(variantId) || { variantId, qtyNeeded: 0, labels: [], movements: [] }
+      current.qtyNeeded += qtyNeeded
+      current.labels.push(label)
+      current.movements.push({ qty: qtyNeeded, type: mutationType, note: mutationNote })
+      requirements.set(variantId, current)
+    }
+
+    items.forEach((item) => {
+      if (item.type === 'product') {
+        addRequirement(item.variant_id, item.qty, item.nama_produk, 'ORDER', '')
+        return
+      }
+
+      item.sampler_items.forEach((samplerItem) => {
+        const label = samplerItem.product_variants?.products?.nama_produk || 'Produk'
+        addRequirement(samplerItem.variant_id, item.qty * Number(samplerItem.qty), label, 'SAMPLER', item.nama_produk)
+      })
+    })
+
+    return [...requirements.values()]
+  }
+
   const saveMarketplaceOrder = async () => {
     setError('')
     setSuccess('')
@@ -171,19 +269,20 @@ export default function MarketplaceOrders() {
 
     try {
       const orderNumber = await createOrderNumber()
+      const stockRequirements = buildStockRequirements()
       const currentStocks = new Map()
 
-      for (const item of items) {
+      for (const requirement of stockRequirements) {
         const { data: currentVariant, error: stockReadError } = await supabase
           .from('product_variants')
           .select('stok, dijual, products(aktif)')
-          .eq('id', item.variant_id)
+          .eq('id', requirement.variantId)
           .single()
 
         if (stockReadError) throw stockReadError
-        if (!currentVariant.dijual || !currentVariant.products?.aktif) throw new Error(`${item.nama_produk} sudah tidak aktif.`)
-        if (Number(currentVariant.stok) < item.qty) throw new Error(`Stok ${item.nama_produk} tidak mencukupi. Tersedia ${currentVariant.stok}.`)
-        currentStocks.set(item.variant_id, Number(currentVariant.stok))
+        if (!currentVariant.dijual || !currentVariant.products?.aktif) throw new Error(`${requirement.labels[0]} sudah tidak aktif.`)
+        if (Number(currentVariant.stok) < requirement.qtyNeeded) throw new Error(`Stok ${requirement.labels[0]} tidak mencukupi. Dibutuhkan ${requirement.qtyNeeded}, tersedia ${currentVariant.stok}.`)
+        currentStocks.set(requirement.variantId, Number(currentVariant.stok))
       }
 
       const marketplaceLabel = invoice.trim() ? `${marketplace} - ${invoice.trim()}` : marketplace
@@ -220,31 +319,33 @@ export default function MarketplaceOrders() {
         if (itemError) throw itemError
       }
 
-      for (const item of items) {
-        const oldStock = currentStocks.get(item.variant_id)
+      for (const requirement of stockRequirements) {
+        const oldStock = currentStocks.get(requirement.variantId)
         const { data: updatedVariant, error: stockError } = await supabase
           .from('product_variants')
-          .update({ stok: oldStock - item.qty })
-          .eq('id', item.variant_id)
+          .update({ stok: oldStock - requirement.qtyNeeded })
+          .eq('id', requirement.variantId)
           .eq('stok', oldStock)
           .select('id')
 
         if (stockError) throw stockError
-        if (!updatedVariant?.length) throw new Error(`Stok ${item.nama_produk} berubah. Silakan ulangi order.`)
-        changedStocks.push({ variantId: item.variant_id, oldStock })
+        if (!updatedVariant?.length) throw new Error(`Stok ${requirement.labels[0]} berubah. Silakan ulangi order.`)
+        changedStocks.push({ variantId: requirement.variantId, oldStock })
 
-        const { error: mutationError } = await supabase.from('stock_mutations').insert({
-          variant_id: item.variant_id,
-          tipe: 'ORDER',
-          qty: -item.qty,
-          catatan: `${orderNumber} ${marketplaceLabel}`,
-          ref_id: orderId,
-        })
-        if (mutationError) throw mutationError
+        for (const movement of requirement.movements) {
+          const { error: mutationError } = await supabase.from('stock_mutations').insert({
+            variant_id: requirement.variantId,
+            tipe: movement.type,
+            qty: -movement.qty,
+            catatan: movement.type === 'SAMPLER' ? `${orderNumber} ${marketplaceLabel} ${movement.note}` : `${orderNumber} ${marketplaceLabel}`,
+            ref_id: orderId,
+          })
+          if (mutationError) throw mutationError
+        }
       }
 
       setVariants((current) => current.map((variant) => {
-        const ordered = items.find((item) => item.variant_id === variant.id)?.qty || 0
+        const ordered = stockRequirements.find((requirement) => requirement.variantId === variant.id)?.qtyNeeded || 0
         return ordered ? { ...variant, stok: Number(variant.stok) - ordered } : variant
       }))
       resetForm()
@@ -291,31 +392,42 @@ export default function MarketplaceOrders() {
 
           <section className="content-card order-section">
             <SectionTitle number="02" title="Input Item Pesanan" />
+            <div className="item-type-tabs">
+              <button type="button" className={itemType === 'product' ? 'active' : ''} onClick={() => changeItemType('product')}>Produk</button>
+              <button type="button" className={itemType === 'sampler' ? 'active' : ''} onClick={() => changeItemType('sampler')}>Paket Sampler</button>
+            </div>
             <div className="order-item-picker marketplace-item-picker">
               <div className="product-picker">
                 <label className="search-field">
                   <Search size={18} />
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari SKU, produk, atau brand..." />
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={itemType === 'product' ? 'Cari SKU, produk, atau brand...' : 'Cari paket sampler...'} />
                 </label>
                 {search && (
                   <div className="product-options">
-                    {loadingProducts && <span className="picker-message"><LoaderCircle className="spin" size={16} /> Memuat produk...</span>}
-                    {!loadingProducts && filteredVariants.length === 0 && <span className="picker-message">Produk aktif dengan stok tersedia tidak ditemukan.</span>}
-                    {!loadingProducts && filteredVariants.map((variant) => (
+                    {loadingProducts && <span className="picker-message"><LoaderCircle className="spin" size={16} /> Memuat pilihan...</span>}
+                    {!loadingProducts && itemType === 'product' && filteredVariants.length === 0 && <span className="picker-message">Produk aktif dengan stok tersedia tidak ditemukan.</span>}
+                    {!loadingProducts && itemType === 'product' && filteredVariants.map((variant) => (
                       <button type="button" key={variant.id} onClick={() => selectVariant(variant)}>
                         <div><strong>{variant.products?.nama_produk}</strong><span>{variant.products?.sku}</span></div>
                         <div><strong>{formatRupiah(variant.harga_jual)}</strong><span>Stok: {variant.stok}</span></div>
                       </button>
                     ))}
+                    {!loadingProducts && itemType === 'sampler' && filteredSamplers.length === 0 && <span className="picker-message">Paket sampler tidak ditemukan.</span>}
+                    {!loadingProducts && itemType === 'sampler' && filteredSamplers.map((sampler) => (
+                      <button type="button" key={sampler.id} onClick={() => selectSampler(sampler)}>
+                        <div><strong>{sampler.nama_paket}</strong><span>{sampler.sampler_items?.length || 0} item penyusun</span></div>
+                        <div><strong>{formatRupiah(sampler.harga_jual)}</strong><span>Paket Sampler</span></div>
+                      </button>
+                    ))}
                   </div>
                 )}
-                {selectedVariant && (
+                {selectedItem && (
                   <div className="selected-product">
                     <div>
-                      <strong>{selectedVariant.products?.nama_produk}</strong>
-                      <span>Stok {selectedVariant.stok}</span>
+                      <strong>{itemType === 'product' ? selectedVariant.products?.nama_produk : selectedSampler.nama_paket}</strong>
+                      <span>{itemType === 'product' ? `Stok ${selectedVariant.stok}` : `${selectedSampler.sampler_items?.length || 0} item penyusun`}</span>
                     </div>
-                    <button type="button" onClick={() => setSelectedVariantId('')}>Ganti</button>
+                    <button type="button" onClick={() => { setSelectedVariantId(''); setSelectedSamplerId('') }}>Ganti</button>
                   </div>
                 )}
               </div>
@@ -333,8 +445,8 @@ export default function MarketplaceOrders() {
                 <tbody>
                   {!items.length && <tr><td colSpan="5"><div className="order-empty"><ShoppingBag size={22} /> Belum ada item marketplace.</div></td></tr>}
                   {items.map((item, index) => (
-                    <tr key={`${item.variant_id}-${index}`}>
-                      <td><strong className="product-title">{productNameOnly(item.nama_produk)}</strong></td>
+                    <tr key={`${item.type}-${item.item_id}-${index}`}>
+                      <td><strong className="product-title">{productNameOnly(item.nama_produk)}</strong>{item.type === 'sampler' && <span className="item-kind">Paket Sampler</span>}</td>
                       <td>{item.qty} {item.satuan}</td>
                       <td>{formatRupiah(item.harga)}</td>
                       <td className="money">{formatRupiah(item.subtotal)}</td>
