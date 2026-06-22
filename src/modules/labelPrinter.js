@@ -14,7 +14,7 @@ const truncate = (value, length) => {
   return escapeHtml(text.length > length ? `${text.slice(0, length - 1)}...` : text)
 }
 
-const FIRST_PAGE_ITEM_LIMIT = 15
+const FIRST_PAGE_ITEM_LIMIT = 10
 const CONTINUATION_PAGE_ITEM_LIMIT = 28
 
 const renderItemRows = (items) => items
@@ -38,7 +38,7 @@ export function buildLabelHTML(order = {}) {
   const tagline = order.tagline || 'whatever price or origin, a good cigar is a good cigar!'
   const footer = order.footer_note || 'CERUTUMURAH.COM'
   const totalPages = 1 + continuationChunks.length
-  const compactClass = firstPageItems.length > 10 ? ' label-items-compact' : ''
+  const compactClass = items.length > FIRST_PAGE_ITEM_LIMIT ? ' label-items-compact' : ''
 
   const firstPage = `<div class="print-label"><div class="label-inner">
     <div class="label-header">
