@@ -14,17 +14,33 @@ const truncate = (value, length) => {
   return escapeHtml(text.length > length ? `${text.slice(0, length - 1)}...` : text)
 }
 
+const FIRST_PAGE_ITEM_LIMIT = 15
+const CONTINUATION_PAGE_ITEM_LIMIT = 28
+
+const renderItemRows = (items) => items
+  .map((item) => `<tr><td>${truncate(item.name, 34)}</td><td class="label-qty">${escapeHtml(item.qty)}</td></tr>`)
+  .join('')
+
+const chunkItems = (items, size) => {
+  const chunks = []
+  for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size))
+  return chunks
+}
+
 export function buildLabelHTML(order = {}) {
-  const items = (Array.isArray(order.items) ? order.items : [])
-    .map((item) => `<tr><td>${truncate(item.name, 34)}</td><td class="label-qty">${escapeHtml(item.qty)}</td></tr>`)
-    .join('')
+  const items = Array.isArray(order.items) ? order.items : []
+  const firstPageItems = items.slice(0, FIRST_PAGE_ITEM_LIMIT)
+  const continuationChunks = chunkItems(items.slice(FIRST_PAGE_ITEM_LIMIT), CONTINUATION_PAGE_ITEM_LIMIT)
+  const firstPageRows = renderItemRows(firstPageItems)
   const senderName = order.sender_name || 'CERUTUMURAH'
   const senderPhone = order.sender_phone || '0816283356'
   const labelLogo = order.logo_url || defaultLogoUrl
   const tagline = order.tagline || 'whatever price or origin, a good cigar is a good cigar!'
   const footer = order.footer_note || 'CERUTUMURAH.COM'
+  const totalPages = 1 + continuationChunks.length
+  const compactClass = firstPageItems.length > 10 ? ' label-items-compact' : ''
 
-  return `<div class="print-label"><div class="label-inner">
+  const firstPage = `<div class="print-label"><div class="label-inner">
     <div class="label-header">
       <div class="label-logo-box"><img src="${escapeHtml(labelLogo)}" alt="${truncate(senderName, 24)}"></div>
       <div class="label-expedition"><small>EKSPEDISI</small>${truncate(order.courier || '-', 20)}</div>
@@ -34,10 +50,22 @@ export function buildLabelHTML(order = {}) {
       <img class="label-watermark" src="${cheUrl}" alt="" aria-hidden="true">
       <div class="label-box label-receiver"><div class="label-title">PENERIMA</div><strong>${truncate(order.receiver_name || '-', 34)}</strong><p>${escapeHtml(order.receiver_address || '-')}</p><strong>Tel. ${truncate(order.receiver_phone || '-', 20)}</strong></div>
       <div class="label-tagline">${truncate(tagline, 80)}</div>
-      <div class="label-box label-items"><div class="label-title">PESANAN</div><table><thead><tr><th>Nama Produk</th><th>Qty</th></tr></thead><tbody>${items || '<tr><td>-</td><td class="label-qty">-</td></tr>'}</tbody></table></div>
+      <div class="label-box label-items${compactClass}"><div class="label-title">PESANAN${totalPages > 1 ? ` · HALAMAN 1/${totalPages}` : ''}</div><table><thead><tr><th>Nama Produk</th><th>Qty</th></tr></thead><tbody>${firstPageRows || '<tr><td>-</td><td class="label-qty">-</td></tr>'}</tbody></table></div>
     </div>
     <div class="label-footer">${truncate(footer, 64)}</div>
   </div></div>`
+
+  const continuationPages = continuationChunks.map((pageItems, index) => `<div class="print-label print-label-continuation"><div class="label-inner">
+    <div class="label-header">
+      <div class="label-logo-box"><img src="${escapeHtml(labelLogo)}" alt="${truncate(senderName, 24)}"></div>
+      <div class="label-expedition"><small>LANJUTAN PESANAN</small>HALAMAN ${index + 2}/${totalPages}</div>
+    </div>
+    <div class="label-box label-continuation-recipient"><div><span>PENERIMA</span><strong>${truncate(order.receiver_name || '-', 34)}</strong></div><div><span>EKSPEDISI</span><strong>${truncate(order.courier || '-', 20)}</strong></div></div>
+    <div class="label-box label-items label-items-continuation"><div class="label-title">DAFTAR PRODUK (LANJUTAN)</div><table><thead><tr><th>Nama Produk</th><th>Qty</th></tr></thead><tbody>${renderItemRows(pageItems)}</tbody></table></div>
+    <div class="label-footer">${truncate(footer, 64)}</div>
+  </div></div>`).join('')
+
+  return firstPage + continuationPages
 }
 
 export async function printLabel(order) {
