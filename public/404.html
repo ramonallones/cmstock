@@ -10,8 +10,9 @@
       const search = window.location.search;
       const hash = window.location.hash;
       const route = path + search + hash;
+      const appVersion = "3962481";
 
-      window.location.replace("/?redirect=" + encodeURIComponent(route));
+      window.location.replace("/?v=" + appVersion + "&redirect=" + encodeURIComponent(route));
     </script>
   </head>
   <body></body>
